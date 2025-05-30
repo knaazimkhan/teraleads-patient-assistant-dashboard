@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from datetime import datetime, timedelta
-import jwt
+# from datetime import datetime, timedelta
+# import jwt
 import os
-
-from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ..core.jwt import create_access_token
+from ..core import jwt
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,26 +17,18 @@ class LoginRequest(BaseModel):
   username: str
   password: str
 
-def create_token(data: dict, expires_delta: timedelta = timedelta(hours=1)):
-  to_encode = data.copy()
-  expire = datetime.utcnow() + expires_delta
-  to_encode.update({"exp": expire})
-  return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+# def create_token(data: dict, expires_delta: timedelta = timedelta(hours=1)):
+#   to_encode = data.copy()
+#   expire = datetime.utcnow() + expires_delta
+#   to_encode.update({"exp": expire})
+#   return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def decode_token(token: str):
-  try:
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-  except jwt.PyJWTError:
-    raise HTTPException(status_code=401, detail="Invalid token")
+# def decode_token(token: str):
+#   try:
+#     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#   except jwt.PyJWTError:
+#     raise HTTPException(status_code=401, detail="Invalid token")
 
-@router.post("/login")
-async def login(request: LoginRequest):
-  # Dummy auth logic
-  if request.username == "admin" and request.password == "admin":
-      token = create_access_token({"sub": request.username})
-      return {"access_token": token, "token_type": "bearer"}
-  raise HTTPException(status_code=401, detail="Invalid username or password")
-  
 # @router.post("/login")
 # def login(form_data: OAuth2PasswordRequestForm = Depends()):
 #   # Dummy single user
@@ -48,6 +38,20 @@ async def login(request: LoginRequest):
 #     return {"access_token": token, "token_type": "bearer"}
 #   raise HTTPException(status_code=401, detail="Invalid credentials")
 
+# def get_current_user(token: str = Depends(oauth2_scheme)):
+#   payload = decode_token(token)
+#   return payload.get("sub")
+
 def get_current_user(token: str = Depends(oauth2_scheme)):
-  payload = decode_token(token)
-  return payload.get("sub")
+  payload = jwt.decode_access_token(token)
+  if payload is None:
+    raise HTTPException(status_code=401, detail="Invalid or expired token")
+  return payload["sub"]
+
+@router.post("/login")
+async def login(request: LoginRequest):
+  # Dummy auth logic
+  if request.username == "admin" and request.password == "admin":
+    token = jwt.create_access_token({"sub": request.username})
+    return {"access_token": token, "token_type": "bearer"}
+  raise HTTPException(status_code=401, detail="Invalid username or password")

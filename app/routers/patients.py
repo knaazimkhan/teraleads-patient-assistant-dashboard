@@ -18,7 +18,8 @@ def list_patients(db: Session = Depends(get_db), _: str = Depends(auth.get_curre
   return crud.get_patients(db)
 
 @router.post("/", response_model=schemas.Patient)
-def create(db: Session = Depends(get_db), patient: schemas.PatientCreate = Depends(), _: str = Depends(auth.get_current_user)):
+def create(patient: schemas.PatientCreate, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
+  print(f"Creating patient: {patient}")
   return crud.create_patient(db, patient)
 
 @router.get("/{patient_id}", response_model=schemas.Patient)
