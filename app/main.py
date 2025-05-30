@@ -1,16 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
+from dotenv import load_dotenv
 
-from . import database
+from .database import init_db
 from .routers import auth, chat, patients
 
-app = FastAPI()
+load_dotenv()
 
+app = FastAPI(
+  title="Dental Clinic Patient Assistant API",
+  description="AI-powered patient management system for dental clinics",
+  version="1.0.0",
+)
 
+# Initialize the database
 @app.on_event("startup")
-
 def on_startup():
-  database.init_db()
+  init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,43 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(patients.router)
-app.include_router(chat.router)
+security = HTTPBearer()
 
 @app.get("/")
-def read_root():
-  return {"Hello": "World"}
+async def root():
+    return {"message": "Dental Clinic Patient Assistant API"}
 
 @app.get("/health")
-def health_check():
+async def health_check():
   return {"status": "healthy"}
 
-@app.get("/status")
-def status_check():
-  return {"status": "running"}
-
-@app.get("/api")
-def api_root():
-  return {"message": "Welcome to the API"}
-
-@app.get("/api/info")
-def api_info():
-  return {
-    "name": "FastAPI Example",
-    "version": "1.0.0",
-    "description": "A simple FastAPI application with database integration."
-  }
-
-@app.get("/api/status")
-def api_status():
-  return {"status": "API is running smoothly"}
-
-@app.get("/api/health")
-def api_health():
-  return {"status": "API is healthy"}
-
-@app.get("/api/ping")
-def api_ping():
-  return {"message": "pong"}
-
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(patients.router, prefix="/api", tags=["Patients"])
+app.include_router(chat.router, prefix="/api", tags=["Chat"])

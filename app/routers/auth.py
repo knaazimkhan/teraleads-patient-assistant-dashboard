@@ -1,57 +1,75 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-# from datetime import datetime, timedelta
-# import jwt
+from sqlalchemy.orm import Session
 import os
-from pydantic import BaseModel
-from ..core import jwt
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+from ..schemas import (
+  LoginRequest,
+  UserCreate, UserResponse, Token,
+)
+from ..database import get_db
+from ..crud import (
+  create_user, authenticate_user
+)
+from ..auth import (
+  create_access_token,
+  get_current_user
+)
+
+router = APIRouter(prefix="/auth")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
-class LoginRequest(BaseModel):
-  username: str
-  password: str
+@router.post("/register", response_model=UserResponse)
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+  db_user = create_user(db, user)
+  if not db_user:
+    raise HTTPException(
+      status_code=400,
+      detail="Email already registered"
+    )
+  return db_user
 
-# def create_token(data: dict, expires_delta: timedelta = timedelta(hours=1)):
-#   to_encode = data.copy()
-#   expire = datetime.utcnow() + expires_delta
-#   to_encode.update({"exp": expire})
-#   return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+@router.post("/login", response_model=Token)
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+  authenticated_user = authenticate_user(db, request.email, request.password)
+  if not authenticated_user:
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+  access_token = create_access_token(data={"sub": authenticated_user.email})
+  return {"access_token": access_token, "token_type": "bearer"}
 
-# def decode_token(token: str):
-#   try:
-#     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#   except jwt.PyJWTError:
-#     raise HTTPException(status_code=401, detail="Invalid token")
+@router.get("/me", response_model=UserResponse)
+async def get_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    current_user = get_current_user(db, token)
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return current_user
 
-# @router.post("/login")
-# def login(form_data: OAuth2PasswordRequestForm = Depends()):
-#   # Dummy single user
-#   print(f"Login attempt with username: {form_data}")
-#   if form_data.username == "admin" and form_data.password == "admin":
-#     token = create_token({"sub": form_data.username})
-#     return {"access_token": token, "token_type": "bearer"}
-#   raise HTTPException(status_code=401, detail="Invalid credentials")
+@router.post("/logout")
+async def logout(token: str = Depends(oauth2_scheme)):
+    # Invalidate the token (if using a token store, otherwise just return success)
+    return {"message": "Successfully logged out"}
 
-# def get_current_user(token: str = Depends(oauth2_scheme)):
-#   payload = decode_token(token)
-#   return payload.get("sub")
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-  payload = jwt.decode_access_token(token)
-  if payload is None:
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
-  return payload["sub"]
-
-@router.post("/login")
-async def login(request: LoginRequest):
-  # Dummy auth logic
-  if request.username == "admin" and request.password == "admin":
-    token = jwt.create_access_token({"sub": request.username})
-    return {"access_token": token, "token_type": "bearer"}
-  raise HTTPException(status_code=401, detail="Invalid username or password")
+@router.post("/refresh")
+async def refresh_token(token: str = Depends(oauth2_scheme)):
+    # Refresh the token logic (if using a token store, otherwise just return a new token)
+    current_user = get_current_user(token=token)
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    new_token = create_access_token(data={"sub": current_user.email})
+    return {"access_token": new_token, "token_type": "bearer"}

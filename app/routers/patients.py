@@ -1,111 +1,66 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
-from . import auth
-from .. import crud, schemas, database
+from ..database import get_db
+from ..schemas import (
+  PatientCreate,
+  PatientResponse,
+  PatientUpdate,
+)
+from ..crud import (
+  create_patient,
+  get_patients,
+  get_patient,
+  update_patient,
+  delete_patient,
+)
+from ..auth import get_current_user
 
-router = APIRouter(prefix="/patients", tags=["Patients"])
+router = APIRouter(prefix="/patients")
 
-def get_db():
-  db = database.SessionLocal()
-  try:
-    yield db
-  finally:
-    db.close()
-
-@router.get("/", response_model=list[schemas.Patient])
-def list_patients(db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  return crud.get_patients(db)
-
-@router.post("/", response_model=schemas.Patient)
-def create(patient: schemas.PatientCreate, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
+@router.post("/", response_model=PatientResponse)
+async def create(patient: PatientCreate, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
   print(f"Creating patient: {patient}")
-  return crud.create_patient(db, patient)
+  return create_patient(db, patient)
 
-@router.get("/{patient_id}", response_model=schemas.Patient)
-def get(patient_id: int, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  db_patient = crud.get_patient(db, patient_id)
-  if not db_patient:
-      raise HTTPException(status_code=404, detail="Not found")
-  return db_patient
+@router.get("/", response_model=List[PatientResponse])
+async def list_patients(
+  skip: int = 0,
+  limit: int = 100,
+  db: Session = Depends(get_db),
+  _: str = Depends(get_current_user)
+):
+  return get_patients(db, skip=skip, limit=limit)
 
-@router.put("/{patient_id}", response_model=schemas.Patient)
-def update(patient_id: int, patient: schemas.PatientCreate, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  return crud.update_patient(db, patient_id, patient)
+@router.get("/{patient_id}", response_model=PatientResponse)
+async def get(patient_id: int, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
+  patient = get_patient(db, patient_id)
+  if not patient:
+    raise HTTPException(status_code=404, detail="Patient not found")
+  return patient
+
+@router.put("/{patient_id}", response_model=PatientResponse)
+async def update(patient_id: int, patient_update: PatientUpdate, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
+  patient = update_patient(db, patient_id, patient_update)
+  if not patient:
+    raise HTTPException(status_code=404, detail="Patient not found")
+  return patient
 
 @router.delete("/{patient_id}", status_code=204)
-def delete(patient_id: int, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  crud.delete_patient(db, patient_id)
-  return {"detail": "Patient deleted successfully"}
+async def delete(patient_id: int, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
+  success = delete_patient(db, patient_id)
+  if not success:
+      raise HTTPException(status_code=404, detail="Patient not found")
+  return {"message": "Patient deleted successfully"}
 
-@router.get("/search", response_model=list[schemas.Patient])
-def search_patients(name: str = None, age: int = None, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  if name:
-    patients = [p for p in patients if name.lower() in p.name.lower()]
-  if age is not None:
-    patients = [p for p in patients if p.age == age]
+@router.get("/search", response_model=List[PatientResponse])
+async def search_patients(
+  query: str,
+  db: Session = Depends(get_db),
+  _: str = Depends(get_current_user)
+):
+  patients = search_patients(db, query)
+  if not patients:
+      raise HTTPException(status_code=404, detail="No patients found")
   return patients
-
-@router.get("/count", response_model=int)
-def count_patients(db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  return len(crud.get_patients(db))
-
-@router.get("/stats", response_model=dict)
-def patient_stats(db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  total_patients = len(patients)
-  if total_patients == 0:
-    return {"total": 0, "average_age": 0, " oldest": None, "youngest": None}
-  average_age = sum(p.age for p in patients) / total_patients
-  oldest = max(patients, key=lambda p: p.age)
-  youngest = min(patients, key=lambda p: p.age)
-  return {
-    "total": total_patients,
-    "average_age": average_age,
-    "oldest": {"name": oldest.name, "age": oldest.age},
-    "youngest": {"name": youngest.name, "age": youngest.age}
-  }
-
-@router.get("/recent", response_model=list[schemas.Patient])
-def recent_patients(limit: int = 5, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  if limit < 1:
-    raise HTTPException(status_code=400, detail="Limit must be at least 1")
-  return patients[-limit:] if len(patients) >= limit else patients
-
-@router.get("/search/name/{name}", response_model=list[schemas.Patient])
-def search_patients_by_name(name: str, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if name.lower() in p.name.lower()]
-  return filtered_patients
-
-@router.get("/search/age/{age}", response_model=list[schemas.Patient])
-def search_patients_by_age(age: int, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if p.age == age]
-  return filtered_patients
-
-@router.get("/search/name/{name}/age/{age}", response_model=list[schemas.Patient])
-def search_patients_by_name_and_age(name: str, age: int, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if name.lower() in p.name.lower() and p.age == age]
-  return filtered_patients
-
-@router.get("/search/age-range", response_model=list[schemas.Patient])
-def search_patients_by_age_range(min_age: int = 0, max_age: int = 120, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if min_age <= p.age <= max_age]
-  return filtered_patients
-
-@router.get("/search/name/{name}/age-range", response_model=list[schemas.Patient])
-def search_patients_by_name_and_age_range(name: str, min_age: int = 0, max_age: int = 120, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if name.lower() in p.name.lower() and min_age <= p.age <= max_age]
-  return filtered_patients
-
-@router.get("/search/age-range/{min_age}/{max_age}", response_model=list[schemas.Patient])
-def search_patients_by_age_range_params(min_age: int, max_age: int, db: Session = Depends(get_db), _: str = Depends(auth.get_current_user)):
-  patients = crud.get_patients(db)
-  filtered_patients = [p for p in patients if min_age <= p.age <= max_age]
-  return filtered_patients

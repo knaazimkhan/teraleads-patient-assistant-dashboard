@@ -13,6 +13,8 @@ jwt = "*"
 openai = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
 passlib = {extras = ["bcrypt"], version = "*"}
+psycopg2-binary = "*"
+alembic = "*"
 
 [dev-packages]
 
