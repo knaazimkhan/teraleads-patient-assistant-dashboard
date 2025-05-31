@@ -9,3 +9,4 @@ python-multipart
 openai
 pydantic
 python-dotenv
+pydantic[email]
