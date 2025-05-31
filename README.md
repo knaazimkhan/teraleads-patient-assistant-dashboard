@@ -35,7 +35,8 @@ A comprehensive AI-powered patient management system for dental clinics built wi
 - **Pydantic**: Data validation using Python type annotations
 
 ### Frontend
-- **React 18**: Modern React with hooks
+- **Vite**: Fast build tool for modern web applications
+- **React 19**: Modern React with hooks
 - **TypeScript**: Type-safe JavaScript
 - **Tailwind CSS**: Utility-first CSS framework
 - **React Query**: Data fetching and caching
