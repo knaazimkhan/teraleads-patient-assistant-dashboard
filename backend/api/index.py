@@ -1,4 +1,5 @@
-from api.main import app  # import your existing FastAPI app
+from fastapi import FastAPI
+from mangum import Mangum  # Lambda adapter for ASGI
+from api.main import app
 
-# Vercel looks for `handler` in this file
-handler = app
+handler = Mangum(app)

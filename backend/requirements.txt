@@ -10,3 +10,4 @@ openai
 pydantic
 python-dotenv
 pydantic[email]
+mangum
