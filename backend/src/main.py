@@ -12,7 +12,7 @@ load_dotenv()
 origins = [
   os.getenv("VITE_APP_URL"), # Frontend URL from environment variable
   "http://localhost:5137" # Local development URL
-  # "https://patient-assistant.vercel.app"  # Your deployed frontend
+  "https://patient-assistant.vercel.app"  # Your deployed frontend
 ]
 
 app = FastAPI(
