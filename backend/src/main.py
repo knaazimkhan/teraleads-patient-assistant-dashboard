@@ -14,7 +14,7 @@ origins = [
   "http://localhost:5137" # Local development URL
   "https://patient-assistant.vercel.app"  # Your deployed frontend
 ]
-print
+print(f"Allowed origins: {origins}")
 app = FastAPI(
   title="Dental Clinic Patient Assistant API",
   description="AI-powered patient management system for dental clinics",
