@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ..schemas import (
+from src.schemas import (
   ChatResponse,
   ChatMessage
 )
 
-from ..auth import get_current_user
-from ..ai import generate_ai_response
+from src.auth import get_current_user
+from src.ai import generate_ai_response
 
 router = APIRouter(tags=["Chat"])
 

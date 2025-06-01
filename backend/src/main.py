@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from dotenv import load_dotenv
 
-from .database import init_db
-from .routers import auth, chat, patients
+from src.database import init_db
+from src.routers import auth, chat, patients
 
 load_dotenv()
 

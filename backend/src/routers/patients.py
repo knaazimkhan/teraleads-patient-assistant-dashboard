@@ -2,20 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from ..database import get_db
-from ..schemas import (
+from src.database import get_db
+from src.schemas import (
   PatientCreate,
   PatientResponse,
   PatientUpdate,
 )
-from ..crud import (
+from src.crud import (
   create_patient,
   get_patients,
   get_patient,
   update_patient,
   delete_patient,
 )
-from ..auth import get_current_user
+from src.auth import get_current_user
 
 router = APIRouter(prefix="/patients")
 

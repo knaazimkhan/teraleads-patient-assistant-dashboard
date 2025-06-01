@@ -2,9 +2,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional
 
-from .models import User, Patient
-from .schemas import UserCreate, PatientCreate, PatientUpdate
-from .auth import get_password_hash, verify_password
+from src.models import User, Patient
+from src.schemas import UserCreate, PatientCreate, PatientUpdate
+from src.auth import get_password_hash, verify_password
 
 # User CRUD operations
 def create_user(db: Session, user: UserCreate):

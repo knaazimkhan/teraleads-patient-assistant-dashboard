@@ -7,8 +7,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import os
 
-from .models import User
-from .database import get_db
+from src.models import User
+from src.database import get_db
 
 # Config
 SECRET_KEY = os.getenv("SECRET_KEY")  # use env in production

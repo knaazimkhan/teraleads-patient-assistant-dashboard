@@ -3,15 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import os
 
-from ..schemas import (
+from src.schemas import (
   LoginRequest,
   UserCreate, UserResponse, Token,
 )
-from ..database import get_db
-from ..crud import (
+from src.database import get_db
+from src.crud import (
   create_user, authenticate_user
 )
-from ..auth import (
+from src.auth import (
   create_access_token,
   get_current_user
 )
