@@ -5,7 +5,7 @@ const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 10 second timeout
 });
 
 // Request interceptor to add auth token

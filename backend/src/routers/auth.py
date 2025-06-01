@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import os
 
@@ -9,16 +9,17 @@ from src.schemas import (
 )
 from src.database import get_db
 from src.crud import (
-  create_user, authenticate_user
+  create_user, authenticate_user,
+  get_user_by_email
 )
 from src.auth import (
   create_access_token,
-  get_current_user
+  get_current_user,
+  verify_token
 )
 
 router = APIRouter(prefix="/auth")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+security = HTTPBearer()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -46,30 +47,54 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
   return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    current_user = get_current_user(db, token)
+async def get_me(
+  credentials: HTTPAuthorizationCredentials = Depends(security),
+  db: Session = Depends(get_db)
+):
+    try:
+      token = credentials.credentials
+      email = verify_token(token)
+    except Exception:
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+      )
+    
+    current_user = get_user_by_email(db, email)
     if not current_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+      )
     return current_user
 
 @router.post("/logout")
-async def logout(token: str = Depends(oauth2_scheme)):
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     # Invalidate the token (if using a token store, otherwise just return success)
     return {"message": "Successfully logged out"}
 
 @router.post("/refresh")
-async def refresh_token(token: str = Depends(oauth2_scheme)):
-    # Refresh the token logic (if using a token store, otherwise just return a new token)
-    current_user = get_current_user(token=token)
+async def refresh_token(
+  credentials: HTTPAuthorizationCredentials = Depends(security),
+  db: Session = Depends(get_db)
+):
+    try:
+      token = credentials.credentials
+      email = verify_token(token)
+    except Exception:
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+      )
+    current_user = get_user_by_email(db, email)
     if not current_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+      )
     new_token = create_access_token(data={"sub": current_user.email})
     return {"access_token": new_token, "token_type": "bearer"}

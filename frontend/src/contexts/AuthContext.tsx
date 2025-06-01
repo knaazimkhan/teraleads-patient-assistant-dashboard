@@ -33,11 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           if (axios.isAxiosError(error)) {
             // Handle Axios error
-            toast.error(error.response?.data?.detail || "Failed to fetch user data");
+            toast.error(
+              error.response?.data?.detail ||
+                "Session expired. Please login again."
+            );
           } else {
             // Handle generic error
             toast.error(
-              (error as Error).message || "Failed to fetch user data"
+              (error as Error).message || "Token verification failed"
             );
           }
           setUser(null);
