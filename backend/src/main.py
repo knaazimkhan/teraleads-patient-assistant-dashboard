@@ -9,7 +9,11 @@ from src.routers import auth, chat, patients
 
 load_dotenv()
 
-VITE_APP_URL = os.getenv("VITE_APP_URL", "http://localhost:5137")
+origins = [
+  os.getenv("VITE_APP_URL"), # Frontend URL from environment variable
+  "http://localhost:5137" # Local development URL
+  # "https://patient-assistant.vercel.app"  # Your deployed frontend
+]
 
 app = FastAPI(
   title="Dental Clinic Patient Assistant API",
@@ -24,7 +28,7 @@ def on_startup():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[VITE_APP_URL],  # Frontend origin
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
