@@ -9,12 +9,8 @@ from src.routers import auth, chat, patients
 
 load_dotenv()
 
-origins = [
-  os.getenv("VITE_APP_URL"), # Frontend URL from environment variable
-  "http://localhost:5137" # Local development URL
-  "https://patient-assistant.vercel.app"  # Your deployed frontend
-]
-print(f"Allowed origins: {origins}")
+origins = [ os.getenv("VITE_APP_URL") ]
+
 app = FastAPI(
   title="Dental Clinic Patient Assistant API",
   description="AI-powered patient management system for dental clinics",
