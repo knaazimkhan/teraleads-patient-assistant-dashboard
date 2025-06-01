@@ -2,11 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from dotenv import load_dotenv
+import os
 
 from src.database import init_db
 from src.routers import auth, chat, patients
 
 load_dotenv()
+
+VITE_APP_URL = os.getenv("VITE_APP_URL", "http://localhost:5137")
 
 app = FastAPI(
   title="Dental Clinic Patient Assistant API",
@@ -21,7 +24,7 @@ def on_startup():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend origin
+    allow_origins=[VITE_APP_URL],  # Frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

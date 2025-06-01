@@ -9,7 +9,7 @@ from src.schemas import (
 from src.auth import get_current_user
 from src.ai import generate_ai_response
 
-router = APIRouter(tags=["Chat"])
+router = APIRouter()
 
 # Option 1: Dummy reply (no external API)
 @router.post("/chat", response_model=ChatResponse)
