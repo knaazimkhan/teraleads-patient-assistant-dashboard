@@ -2,7 +2,7 @@
   "builds": [
     {
       "src": "/api/index.py",
-      "use": "vercel-python-wsgi"
+      "use": "@vercel/og"
     }
   ],
   "routes": [
